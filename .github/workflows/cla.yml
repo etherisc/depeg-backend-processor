@@ -20,7 +20,7 @@ jobs:
         with:
           remote-organization-name: 'etherisc'
           remote-repository-name: 'cla-signatures'
-          path-to-signatures: 'signatures/depeg-ui/v1/cla.json'
+          path-to-signatures: 'signatures/depeg-background-processor/v1/cla.json'
           path-to-document: 'https://gist.github.com/christoph2806/3e7cb6a53db85d3b3e09e90604b5d10d' # e.g. a CLA or a DCO document
           # branch should not be protected
           branch: 'main'
