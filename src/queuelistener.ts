@@ -24,7 +24,7 @@ export default class QueueListener {
                 APPLICATION_ID,
                 CONSUMER_ID,
                 { key: "application:signatures", id: '>' },
-                { COUNT: 1, BLOCK: 10000 }
+                { COUNT: 1, BLOCK: 5000 }
             );
 
             if (messages !== null) {
