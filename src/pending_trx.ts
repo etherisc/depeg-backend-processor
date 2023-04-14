@@ -1,4 +1,4 @@
-import { Schema, Entity } from "redis-om";
+import { Schema, Entity, Repository } from "redis-om";
 import { redisOmClient } from "./redisclient";
 
 export interface PendingTransaction {
@@ -30,8 +30,8 @@ export const PENDING_TRANSACTION_SCHEMA = new Schema(PendingTransaction, {
     dataStructure: 'HASH'
 });
 
-export async function getPendingTransactionRepository() {
+export async function getPendingTransactionRepository(): Promise<Repository<PendingTransaction>> {
     const priceRepository = (await redisOmClient).fetchRepository(PENDING_TRANSACTION_SCHEMA);
-    priceRepository.createIndex();
+    await priceRepository.createIndex();
     return priceRepository;
 }

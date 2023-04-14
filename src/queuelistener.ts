@@ -3,7 +3,8 @@ import { logger } from './logger';
 import { redisClient } from './redisclient';
 import { formatBytes32String, formatUnits } from 'ethers/lib/utils';
 import { DepegProduct, DepegProduct__factory } from "./contracts/depeg-contracts";
-import { getPendingTransactionRepository } from './pending_trx';
+import { PendingTransaction, getPendingTransactionRepository } from './pending_trx';
+import { Repository } from 'redis-om';
 
 // TODO: make configurable
 const APPLICATION_ID = "depeg-backend-processor";
@@ -12,7 +13,7 @@ const STREAM_KEY = "application:signatures";
 
 export default class QueueListener {
 
-    async listen(depegProductAddress: string, signer: Signer) {
+    async listen(depegProductAddress: string, signer: Signer, maxFeePerGas: BigNumber) {
         try {
             await redisClient.xGroupCreate(STREAM_KEY, APPLICATION_ID, "0", { MKSTREAM: true });
         } catch (err) {
@@ -26,19 +27,21 @@ export default class QueueListener {
             try {
                 const pendingMessage = await this.getNextPendingMessage();
                 if (pendingMessage !== null) {
-                    await this.processMessage(pendingMessage.id, pendingMessage.message, product, pendingTransactionRepository);
+                    await this.processMessage(pendingMessage.id, pendingMessage.message, product, pendingTransactionRepository, maxFeePerGas);
                     // repeat this while there are pending messages
                     continue;
                 }
                 
                 const newMessage = await this.getNextNewMessage();
                 if (newMessage !== null) {
-                    await this.processMessage(newMessage.id, newMessage.message, product, pendingTransactionRepository);
+                    await this.processMessage(newMessage.id, newMessage.message, product, pendingTransactionRepository, maxFeePerGas);
                 }
             } catch (e) {
                 logger.error('caught error, blocking for 30s', e);
                 await new Promise(f => setTimeout(f, 30 * 1000));
             }
+
+            await this.checkPendingTransactions(pendingTransactionRepository, signer);
         }
     }
 
@@ -76,7 +79,7 @@ export default class QueueListener {
         return { id: obj.id, message: obj.message };
     }
 
-    async processMessage(id: string, message: any, product: DepegProduct, pendingTransactionRepository: any) {
+    async processMessage(id: string, message: any, product: DepegProduct, pendingTransactionRepository: any, maxFeePerGas: BigNumber) {
         logger.info("processing id: " + id);
         const policyHolder = message.policyHolder as string;
         const protectedWallet = message.protectedWallet as string;
@@ -103,9 +106,11 @@ export default class QueueListener {
             duration,
             bundleId,
             formatBytes32String(signatureId),
-            signature
+            signature,
+            {
+                maxFeePerGas,
+            }
         );
-        // TODO: set max gas price
         logger.info("tx: " + tx.hash);
 
         pendingTransactionRepository.createAndSave({
@@ -121,6 +126,20 @@ export default class QueueListener {
         });
 
         await redisClient.xAck("application:signatures", APPLICATION_ID, id);
+    }
+
+    async checkPendingTransactions(pendingTransactionRepository: Repository<PendingTransaction>, signer: Signer) {
+        logger.debug("checking state of pending trnsactions");
+        const pendingTransactions = await pendingTransactionRepository.search().return.all();
+        for (const pendingTransaction of pendingTransactions) {
+            const rcpt = await signer.provider!.getTransactionReceipt(pendingTransaction.transactionHash);
+            const wasMined = rcpt.status === 1 && rcpt.blockNumber !== null;
+            logger.debug(`mined: ${wasMined}`);
+            if (wasMined) {
+                logger.info("transaction " + pendingTransaction.transactionHash + " has been mined");
+                await pendingTransactionRepository.remove(pendingTransaction.entityId);
+            }
+        }
     }
 
 }
