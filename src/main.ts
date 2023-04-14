@@ -1,5 +1,4 @@
 import * as dotenv from 'dotenv'
-// import { initializeRedis, redisClient } from './redisclient';
 import QueueListener from './queuelistener';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { Signer, Wallet, logger } from 'ethers';

@@ -1,4 +1,3 @@
-// import FromRegistryHarvester from './fromregistryharvester';
 import { BigNumber, Signer } from 'ethers';
 import { logger } from './logger';
 import { redisClient } from './redisclient';
@@ -50,7 +49,6 @@ export default class QueueListener {
                     + ", signature: " + signature
                     );
 
-                // TODO: applyForPolicyWithBundleAndSignature
                 const product = DepegProduct__factory.connect(depegProductAddress, signer);
                 const tx = await product.applyForPolicyWithBundleAndSignature(
                     policyHolder,
