@@ -13,17 +13,23 @@ const STREAM_KEY = "application:signatures";
 
 export default class QueueListener {
 
-    async listen(depegProductAddress: string, signer: Signer, maxFeePerGas: BigNumber) {
+    async listen(depegProductAddress: string, processorSigner: Signer, maxFeePerGas: BigNumber, processorExpectedBalance: BigNumber): Promise<void> {
         try {
             await redisClient.xGroupCreate(STREAM_KEY, APPLICATION_ID, "0", { MKSTREAM: true });
         } catch (err) {
             logger.info("group already exists");
         }
 
-        const product = DepegProduct__factory.connect(depegProductAddress, signer);
+        const product = DepegProduct__factory.connect(depegProductAddress, processorSigner);
         const pendingTransactionRepository = await getPendingTransactionRepository();
 
         while(true) {
+            if (! await hasExpectedBalance(processorSigner, processorExpectedBalance)) {
+                logger.error('processor balance too low, waiting 60s');
+                await new Promise(f => setTimeout(f, 60 * 1000));
+                continue;
+            }
+
             try {
                 const pendingMessage = await this.getNextPendingMessage();
                 if (pendingMessage !== null) {
@@ -41,7 +47,7 @@ export default class QueueListener {
                 await new Promise(f => setTimeout(f, 30 * 1000));
             }
 
-            await this.checkPendingTransactions(pendingTransactionRepository, signer);
+            await this.checkPendingTransactions(pendingTransactionRepository, processorSigner);
         }
     }
 
@@ -142,4 +148,9 @@ export default class QueueListener {
         }
     }
 
+}
+
+async function hasExpectedBalance(processorSigner: Signer, processorExpectedBalance: BigNumber): Promise<boolean> {
+    const balance = await processorSigner.getBalance();
+    return (balance).gte(processorExpectedBalance);
 }

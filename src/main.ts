@@ -2,7 +2,7 @@ import * as dotenv from 'dotenv'
 import QueueListener from './queuelistener';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { BigNumber, Signer, Wallet, logger } from 'ethers';
-import { formatUnits } from 'ethers/lib/utils';
+import { formatEther, formatUnits, parseEther } from 'ethers/lib/utils';
 
 dotenv.config()
 
@@ -17,7 +17,8 @@ class Main {
         const processorMnemonic = process.env.PROCESSOR_MNEMONIC ?? "";
         const maxFeePerGas = BigNumber.from(process.env.MAX_FEE_PER_GAS) ?? BigNumber.from(30).pow(9);
         logger.info("maxFeePerGas: " + formatUnits(maxFeePerGas, "gwei") + " gwei");
-        
+        const processorExpectedBalance = process.env.PROCESSOR_EXPECTED_BALANCE ? BigNumber.from(process.env.PROCESSOR_EXPECTED_BALANCE) : parseEther("1.0");
+        logger.info("processorExpectedBalance: " + formatEther(processorExpectedBalance) + " eth");
         
         const provider = new StaticJsonRpcProvider(process.env.CHAIN_RPC_URL);
         const signer: Signer = Wallet.fromMnemonic(processorMnemonic).connect(provider);
@@ -25,7 +26,7 @@ class Main {
         logger.info("processor address: " + await signer.getAddress());
 
         // initializeRedis();
-        new QueueListener().listen(depegProductAddress, signer, maxFeePerGas);
+        new QueueListener().listen(depegProductAddress, signer, maxFeePerGas, processorExpectedBalance);
     }
 
 }
