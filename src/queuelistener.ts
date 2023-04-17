@@ -140,7 +140,7 @@ export default class QueueListener {
         const pendingTransactions = await pendingTransactionRepository.search().return.all();
         for (const pendingTransaction of pendingTransactions) {
             const rcpt = await signer.provider!.getTransactionReceipt(pendingTransaction.transactionHash);
-            const wasMined = rcpt.status === 1 && rcpt.blockNumber !== null;
+            const wasMined = rcpt !== null;
             logger.debug(`mined: ${wasMined}`);
             if (wasMined) {
                 logger.info("transaction " + pendingTransaction.transactionHash + " has been mined");
