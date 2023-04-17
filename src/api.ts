@@ -1,16 +1,15 @@
 import { BigNumber, Signer } from 'ethers';
-import express, { Express, Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import { hasExpectedBalance } from './queuelistener';
 import { formatEther } from 'ethers/lib/utils';
 import { redisClient } from './redisclient';
-import { rmSync } from 'fs';
-import { RedisClientType } from 'redis';
 import { APPLICATION_ID, CONSUMER_ID, STREAM_KEY } from './constants';
+import { logger } from './logger';
 
 
 export async function initializeApi(processorSigner: Signer, processorExpectedBalance: BigNumber) {
     const port = process.env.PORT || 3000;
-    const lastCheckTimeout = 60 * 1000;
+    const lastCheckTimeout = 180 * 1000;
     const app = express();
     const monitorRedisClient = redisClient.duplicate();
     monitorRedisClient.connect();
@@ -42,11 +41,16 @@ export async function initializeApi(processorSigner: Signer, processorExpectedBa
             statusCode = 500;
         }
         
+        if (statusCode === 200) {
+            logger.debug("monitor ok");
+        } else {
+            logger.error("monitor error - 500 " + JSON.stringify(status));
+        }
         res.status(statusCode).send(status);
     });
 
     app.listen(port, () => {
-        console.log(`⚡️[server]: Server is running at https://localhost:${port}`);
+        logger.info(`⚡️[server]: Server is running at https://localhost:${port}`);
     });
 }
 

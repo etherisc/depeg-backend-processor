@@ -20,6 +20,7 @@ export default class QueueListener {
         const pendingTransactionRepository = await getPendingTransactionRepository();
         // initialize last-check with current timestamp
         await redisClient.set("last-check", new Date().toISOString());
+        logger.info("attaching to queue " + STREAM_KEY + " with group " + APPLICATION_ID + " and consumer " + CONSUMER_ID);
 
         while(true) {
             if (! await hasExpectedBalance(processorSigner, processorExpectedBalance)) {
