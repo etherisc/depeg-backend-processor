@@ -6,6 +6,7 @@ const logger = winston.createLogger({
     // defaultMeta: { service: 'user-service' },
     transports: [
         new winston.transports.Console({
+            level: process.env.NODE_ENV !== 'production' ? 'debug' : 'info',
             format: winston.format.cli(),
         })
         // new winston.transports.File({ 
@@ -19,12 +20,5 @@ const logger = winston.createLogger({
         // }),
     ],
 });
-
-if (process.env.NODE_ENV !== 'production') {
-    logger.add(new winston.transports.Console({
-        level: 'debug',
-        format: winston.format.cli(),
-    }));
-}
 
 export { logger };
