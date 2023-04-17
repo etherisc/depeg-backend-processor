@@ -7,9 +7,9 @@ import { PendingTransaction, getPendingTransactionRepository } from './pending_t
 import { Repository } from 'redis-om';
 
 // TODO: make configurable
-const APPLICATION_ID = "depeg-backend-processor";
-const CONSUMER_ID = "depeg-backend-processor-consumer";
-const STREAM_KEY = "application:signatures";
+export const APPLICATION_ID = "depeg-backend-processor";
+export const CONSUMER_ID = "depeg-backend-processor-consumer";
+export const STREAM_KEY = "application:signatures";
 
 export default class QueueListener {
 
@@ -56,7 +56,7 @@ export default class QueueListener {
         const r = await redisClient.xReadGroup(
             APPLICATION_ID,
             CONSUMER_ID,
-            { key: "application:signatures", id: '0' },
+            { key: STREAM_KEY, id: '0' },
             { COUNT: 1, BLOCK: 10 }
         );
 
@@ -73,7 +73,7 @@ export default class QueueListener {
         const r = await redisClient.xReadGroup(
             APPLICATION_ID,
             CONSUMER_ID,
-            { key: "application:signatures", id: '>' },
+            { key: STREAM_KEY, id: '>' },
             { COUNT: 1, BLOCK: 30000 }
         );
 
@@ -131,7 +131,7 @@ export default class QueueListener {
             timestamp: new Date()
         });
 
-        await redisClient.xAck("application:signatures", APPLICATION_ID, id);
+        await redisClient.xAck(STREAM_KEY, APPLICATION_ID, id);
     }
 
     async checkPendingTransactions(pendingTransactionRepository: Repository<PendingTransaction>, signer: Signer) {
@@ -150,7 +150,7 @@ export default class QueueListener {
 
 }
 
-async function hasExpectedBalance(processorSigner: Signer, processorExpectedBalance: BigNumber): Promise<boolean> {
+export async function hasExpectedBalance(processorSigner: Signer, processorExpectedBalance: BigNumber): Promise<boolean> {
     const balance = await processorSigner.getBalance();
     return (balance).gte(processorExpectedBalance);
 }

@@ -3,6 +3,7 @@ import QueueListener from './queuelistener';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { BigNumber, Signer, Wallet, logger } from 'ethers';
 import { formatEther, formatUnits, parseEther } from 'ethers/lib/utils';
+import { initializeApi } from './api';
 
 dotenv.config()
 
@@ -24,6 +25,8 @@ class Main {
         const signer: Signer = Wallet.fromMnemonic(processorMnemonic).connect(provider);
 
         logger.info("processor address: " + await signer.getAddress());
+
+        initializeApi(signer, processorExpectedBalance);
 
         // initializeRedis();
         new QueueListener().listen(depegProductAddress, signer, maxFeePerGas, processorExpectedBalance);
