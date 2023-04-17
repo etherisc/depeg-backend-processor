@@ -1,0 +1,15 @@
+import { BigNumber } from "ethers";
+import { parseEther } from "ethers/lib/utils";
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
+export const APPLICATION_ID = process.env.REDIS_QUEUE_APPLICATION_ID ?? "depeg-backend-processor";
+export const CONSUMER_ID = process.env.REDIS_QUEUE_CONSUMER_ID ?? "depeg-backend-processor-consumer";
+export const STREAM_KEY = process.env.REDIS_QUEUE_STREAM_KEY ?? "application:signatures";
+
+export const DEPEG_PRODUCT_ADDRESS = process.env.DEPEG_PRODUCT_ADDRESS ?? "";
+export const PROCESSOR_MNEMONIC = process.env.PROCESSOR_MNEMONIC ?? "";
+export const MAX_FEE_PER_GAS = BigNumber.from(process.env.MAX_FEE_PER_GAS || 30000000000);
+export const PROCESSOR_EXPECTED_BALANCE = process.env.PROCESSOR_EXPECTED_BALANCE ? BigNumber.from(process.env.PROCESSOR_EXPECTED_BALANCE) : parseEther("1.0");
+export const CHAIN_RPC_URL = process.env.CHAIN_RPC_URL ?? "";

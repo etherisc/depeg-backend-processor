@@ -1,10 +1,11 @@
 import { BigNumber, Signer } from 'ethers';
 import express, { Express, Request, Response } from 'express';
-import { APPLICATION_ID, CONSUMER_ID, STREAM_KEY, hasExpectedBalance } from './queuelistener';
+import { hasExpectedBalance } from './queuelistener';
 import { formatEther } from 'ethers/lib/utils';
 import { redisClient } from './redisclient';
 import { rmSync } from 'fs';
 import { RedisClientType } from 'redis';
+import { APPLICATION_ID, CONSUMER_ID, STREAM_KEY } from './constants';
 
 
 export async function initializeApi(processorSigner: Signer, processorExpectedBalance: BigNumber) {

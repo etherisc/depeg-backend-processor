@@ -1,11 +1,12 @@
-import * as dotenv from 'dotenv'
-import QueueListener from './queuelistener';
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
-import { BigNumber, Signer, Wallet, logger } from 'ethers';
-import { formatEther, formatUnits, parseEther } from 'ethers/lib/utils';
+import * as dotenv from 'dotenv';
+import { Signer, Wallet, logger } from 'ethers';
+import { formatEther, formatUnits } from 'ethers/lib/utils';
 import { initializeApi } from './api';
+import { CHAIN_RPC_URL, DEPEG_PRODUCT_ADDRESS, MAX_FEE_PER_GAS, PROCESSOR_EXPECTED_BALANCE, PROCESSOR_MNEMONIC } from './constants';
+import QueueListener from './queuelistener';
 
-dotenv.config()
+dotenv.config();
 
 class Main {
 
@@ -13,15 +14,15 @@ class Main {
     }
 
     public async main(): Promise<void> {
-        const depegProductAddress = process.env.DEPEG_PRODUCT_ADDRESS ?? "";
+        const depegProductAddress = DEPEG_PRODUCT_ADDRESS;
         logger.info("depegProductAddress: " + depegProductAddress);
-        const processorMnemonic = process.env.PROCESSOR_MNEMONIC ?? "";
-        const maxFeePerGas = BigNumber.from(process.env.MAX_FEE_PER_GAS) ?? BigNumber.from(30).pow(9);
+        const processorMnemonic = PROCESSOR_MNEMONIC;
+        const maxFeePerGas = MAX_FEE_PER_GAS;
         logger.info("maxFeePerGas: " + formatUnits(maxFeePerGas, "gwei") + " gwei");
-        const processorExpectedBalance = process.env.PROCESSOR_EXPECTED_BALANCE ? BigNumber.from(process.env.PROCESSOR_EXPECTED_BALANCE) : parseEther("1.0");
+        const processorExpectedBalance = PROCESSOR_EXPECTED_BALANCE;
         logger.info("processorExpectedBalance: " + formatEther(processorExpectedBalance) + " eth");
         
-        const provider = new StaticJsonRpcProvider(process.env.CHAIN_RPC_URL);
+        const provider = new StaticJsonRpcProvider(CHAIN_RPC_URL);
         const signer: Signer = Wallet.fromMnemonic(processorMnemonic).connect(provider);
 
         logger.info("processor address: " + await signer.getAddress());

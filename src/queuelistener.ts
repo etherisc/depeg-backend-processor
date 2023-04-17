@@ -5,11 +5,7 @@ import { formatBytes32String, formatUnits } from 'ethers/lib/utils';
 import { DepegProduct, DepegProduct__factory } from "./contracts/depeg-contracts";
 import { PendingTransaction, getPendingTransactionRepository } from './pending_trx';
 import { Repository } from 'redis-om';
-
-// TODO: make configurable
-export const APPLICATION_ID = "depeg-backend-processor";
-export const CONSUMER_ID = "depeg-backend-processor-consumer";
-export const STREAM_KEY = "application:signatures";
+import { APPLICATION_ID, CONSUMER_ID, STREAM_KEY } from './constants';
 
 export default class QueueListener {
 
