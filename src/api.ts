@@ -37,7 +37,7 @@ export async function initializeApi(processorSigner: Signer, processorExpectedBa
 
         const lastCheckTimestamp = await getLastCheckTimestamp(monitorRedisClient);
         if(new Date().getTime() - lastCheckTimestamp.getTime() > lastCheckTimeout) {
-            status.processor = "error - last check " + lastCheckTimestamp.toISOString();
+            status.processor = "error - last successful queue processing " + lastCheckTimestamp.toISOString();
             statusCode = 500;
         }
         
