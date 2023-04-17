@@ -5,7 +5,7 @@ import { formatBytes32String, formatUnits } from 'ethers/lib/utils';
 import { DepegProduct, DepegProduct__factory } from "./contracts/depeg-contracts";
 import { PendingTransaction, getPendingTransactionRepository } from './pending_trx';
 import { Repository } from 'redis-om';
-import { APPLICATION_ID, CONSUMER_ID, STREAM_KEY } from './constants';
+import { APPLICATION_ID, BALANCE_TOO_LOW_TIMEOUT, CONSUMER_ID, ERROR_TIMEOUT, REDIS_READ_BLOCK_TIMEOUT, STREAM_KEY } from './constants';
 
 export default class QueueListener {
 
@@ -25,7 +25,7 @@ export default class QueueListener {
         while(true) {
             if (! await hasExpectedBalance(processorSigner, processorExpectedBalance)) {
                 logger.error('processor balance too low, waiting 60s');
-                await new Promise(f => setTimeout(f, 60 * 1000));
+                await new Promise(f => setTimeout(f, BALANCE_TOO_LOW_TIMEOUT));
                 continue;
             }
 
@@ -43,7 +43,7 @@ export default class QueueListener {
                 }
             } catch (e) {
                 logger.error('caught error, blocking for 30s', e);
-                await new Promise(f => setTimeout(f, 30 * 1000));
+                await new Promise(f => setTimeout(f, ERROR_TIMEOUT));
             }
 
             await this.checkPendingTransactions(pendingTransactionRepository, processorSigner);
@@ -75,7 +75,7 @@ export default class QueueListener {
             APPLICATION_ID,
             CONSUMER_ID,
             { key: STREAM_KEY, id: '>' },
-            { COUNT: 1, BLOCK: 30000 }
+            { COUNT: 1, BLOCK: REDIS_READ_BLOCK_TIMEOUT }
         );
 
         if (r === null || r?.length === 0) {
