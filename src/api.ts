@@ -9,6 +9,7 @@ import { RedisClientType } from 'redis';
 
 export async function initializeApi(processorSigner: Signer, processorExpectedBalance: BigNumber) {
     const port = process.env.PORT || 3000;
+    const lastCheckTimeout = 60 * 1000;
     const app = express();
     const monitorRedisClient = redisClient.duplicate();
     monitorRedisClient.connect();
@@ -19,19 +20,28 @@ export async function initializeApi(processorSigner: Signer, processorExpectedBa
             processor: "ok",
             nonAckPendingTx: "ok",
         }
+        let statusCode = 200;
 
         const isExpectedBalance = await hasExpectedBalance(processorSigner, processorExpectedBalance);
         if (!isExpectedBalance) {
             const balance = await processorSigner.getBalance();
             status.balance = "error - " + formatEther(balance) + " ETH";
+            statusCode = 500;
         }
 
         const nonAckMessages = await getNonAckMessages(monitorRedisClient);
         if (nonAckMessages > 5) {
             status.nonAckPendingTx = "error - " + nonAckMessages + " non-ack messages";
+            statusCode = 500;
+        }
+
+        const lastCheckTimestamp = await getLastCheckTimestamp(monitorRedisClient);
+        if(new Date().getTime() - lastCheckTimestamp.getTime() > lastCheckTimeout) {
+            status.processor = "error - last check " + lastCheckTimestamp.toISOString();
+            statusCode = 500;
         }
         
-        res.status(200).send(status);
+        res.status(statusCode).send(status);
     });
 
     app.listen(port, () => {
@@ -52,6 +62,14 @@ async function getNonAckMessages(monitorRedisClient: any) {
     }
 
     return Math.max(r.length, r[0].messages.length);
+}
 
+async function getLastCheckTimestamp(monitorRedisClient: any) {
+    const lastCheck = await monitorRedisClient.get("last-check");
+    if (lastCheck === null) {
+        return new Date(0);
+    }
+
+    return new Date(lastCheck);
 }
 

@@ -22,6 +22,8 @@ export default class QueueListener {
 
         const product = DepegProduct__factory.connect(depegProductAddress, processorSigner);
         const pendingTransactionRepository = await getPendingTransactionRepository();
+        // initialize last-check with current timestamp
+        await redisClient.set("last-check", new Date().toISOString());
 
         while(true) {
             if (! await hasExpectedBalance(processorSigner, processorExpectedBalance)) {
@@ -48,6 +50,8 @@ export default class QueueListener {
             }
 
             await this.checkPendingTransactions(pendingTransactionRepository, processorSigner);
+            // update last-check timestamp
+            await redisClient.set("last-check", new Date().toISOString());
         }
     }
 
