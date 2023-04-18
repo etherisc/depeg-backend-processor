@@ -1,6 +1,6 @@
 {
   "name": "depeg-backend-processor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Depeg backend processor",
   "main": "main.ts",
   "scripts": {
