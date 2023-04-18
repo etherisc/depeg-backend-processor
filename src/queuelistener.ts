@@ -3,9 +3,9 @@ import { logger } from './logger';
 import { redisClient } from './redisclient';
 import { formatBytes32String, formatUnits } from 'ethers/lib/utils';
 import { DepegProduct, DepegProduct__factory } from "./contracts/depeg-contracts";
-import { PendingTransaction, getPendingTransactionRepository } from './pending_trx';
 import { Repository } from 'redis-om';
 import { APPLICATION_ID, BALANCE_TOO_LOW_TIMEOUT, CONSUMER_ID, ERROR_TIMEOUT, REDIS_READ_BLOCK_TIMEOUT, STREAM_KEY } from './constants';
+import { PendingApplication, getPendingApplicationRepository } from './pending_application';
 
 export default class QueueListener {
 
@@ -17,7 +17,7 @@ export default class QueueListener {
         }
 
         const product = DepegProduct__factory.connect(depegProductAddress, processorSigner);
-        const pendingTransactionRepository = await getPendingTransactionRepository();
+        const pendingTransactionRepository = await getPendingApplicationRepository();
         // initialize last-check with current timestamp
         await redisClient.set("last-check", new Date().toISOString());
         logger.info("attaching to queue " + STREAM_KEY + " with group " + APPLICATION_ID + " and consumer " + CONSUMER_ID);
@@ -135,7 +135,7 @@ export default class QueueListener {
         await redisClient.xAck(STREAM_KEY, APPLICATION_ID, id);
     }
 
-    async checkPendingTransactions(pendingTransactionRepository: Repository<PendingTransaction>, signer: Signer) {
+    async checkPendingTransactions(pendingTransactionRepository: Repository<PendingApplication>, signer: Signer) {
         logger.debug("checking state of pending trnsactions");
         const pendingTransactions = await pendingTransactionRepository.search().return.all();
         for (const pendingTransaction of pendingTransactions) {
