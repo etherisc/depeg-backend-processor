@@ -29,3 +29,51 @@ This is used to provide a feeless service (if the applicant chooses the option '
 docker build -t depeg-backend-processor .
 docker run -d --name depeg-backend-processor -p 3000:3000 depeg-backend-processor
 ```
+
+
+## Deployment
+
+### Dokku
+
+We use [dokku](https://dokku.com/) for deployment. 
+
+With the current setup (dokku repo is added as remote repo called `dokku` to the local git), deployment is triggered by running the following command in the root directory of the project:
+
+```
+git push dokku <branch-to-deploy>:main
+```
+
+#### Initial instance setup
+
+Replace application name (`goerli-setup`) with whatever fits your need. DNS is expected to be prepared in advance.
+
+
+```s
+# create dokku application 
+dokku apps:create mumbai-processor
+
+# add new domain and remove default domain
+dokku domains:add mumbai-processor processor.mumbai.etherisc.com
+dokku domains:remove mumbai-processor mumbai-processor.depeg-test.etherisc.com
+
+# set correct proxy ports for http and https
+dokku proxy:ports-add mumbai-processor https:443:3000
+dokku proxy:ports-add mumbai-processor http:80:3000
+dokku proxy:ports-remove mumbai-processor http:80:5000
+
+# link existing redis service from depeg-ui
+dokku redis:link depeg-mumbai-redis mumbai-processor
+
+# disable zero downtime deployments (to avoid duplicate queue listeners)
+dokku checks:disable mumbai-processor
+
+# configure environment variables (see above)
+dokku config:set mumbai-processor ...
+
+# now push deployment via git 
+# 1. add new git remote 'git remote add dokku-mumbai dokku@<host>:mumbai-processor'
+# 2. 'git push dokku-mumbai develop:main'
+
+# enable let's encrypt for https certificates
+dokku letsencrypt:enable mumbai-processor
+```
