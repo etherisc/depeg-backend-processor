@@ -29,4 +29,3 @@ This is used to provide a feeless service (if the applicant chooses the option '
 docker build -t depeg-backend-processor .
 docker run -d --name depeg-backend-processor -p 3000:3000 depeg-backend-processor
 ```
-
