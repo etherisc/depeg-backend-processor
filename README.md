@@ -9,6 +9,7 @@ This is used to provide a feeless service (if the applicant chooses the option '
 
 - `REDIS_URL`: the URL of the Redis instance used
 - `CHAIN_RPC_URL`: the URL of the Ethereum node used
+- `CHAIN_MINUMUM_REQUIRED_CONFIRMATIONS`: the minimum number of confirmations required for a transaction to be considered confirmed and purged from redis
 - `NODE_ENV`: the environment of the application 
 
 - `DEPEG_PRODUCT_ADDRESS`: the address of the Depeg product
@@ -16,6 +17,9 @@ This is used to provide a feeless service (if the applicant chooses the option '
 - `PROCESSOR_MNEMONIC`: the mnemonic of the processor
 - `MAX_FEE_PER_GAS`: the maximum fee per gas to use for the application
 
+- `BALANCE_TOO_LOW_TIMEOUT`: the timeout in milliseconds to wait before retrying to submit an application if the balance is too low
+- `ERROR_TIMEOUT`: the timeout in milliseconds to wait before retrying to submit an application if an error occurred
+- `REDIS_READ_BLOCK_TIMEOUT`: the timeout in milliseconds to block while reading from redis stream (queue)
 
 ## Execution
 
