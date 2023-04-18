@@ -4,7 +4,7 @@ import { redisClient } from './redisclient';
 import { formatBytes32String, formatUnits } from 'ethers/lib/utils';
 import { DepegProduct, DepegProduct__factory } from "./contracts/depeg-contracts";
 import { Repository } from 'redis-om';
-import { APPLICATION_ID, BALANCE_TOO_LOW_TIMEOUT, CONSUMER_ID, ERROR_TIMEOUT, REDIS_READ_BLOCK_TIMEOUT, STREAM_KEY } from './constants';
+import { APPLICATION_ID, BALANCE_TOO_LOW_TIMEOUT, CHAIN_MINUMUM_REQUIRED_CONFIRMATIONS, CONSUMER_ID, ERROR_TIMEOUT, REDIS_READ_BLOCK_TIMEOUT, STREAM_KEY } from './constants';
 import { PendingApplication, getPendingApplicationRepository } from './pending_application';
 
 export default class QueueListener {
@@ -143,7 +143,7 @@ export default class QueueListener {
                 continue;
             }
             const rcpt = await signer.provider!.getTransaction(pendingTransaction.transactionHash);
-            const wasMined = rcpt.blockHash !== null;
+            const wasMined = rcpt.blockHash !== null && rcpt.confirmations > CHAIN_MINUMUM_REQUIRED_CONFIRMATIONS;
             logger.debug(`mined: ${wasMined}`);
             if (wasMined) {
                 logger.info("transaction " + pendingTransaction.transactionHash + " has been mined. removing pending application " + pendingTransaction.entityId);
