@@ -22,10 +22,9 @@ export async function initializeApi(processorSigner: Signer, processorExpectedBa
         }
         let statusCode = 200;
 
-        const isExpectedBalance = await hasExpectedBalance(processorSigner, processorExpectedBalance);
-        if (!isExpectedBalance) {
-            const balance = await processorSigner.getBalance();
-            status.balance = "error - " + formatEther(balance) + " ETH";
+        const balancesT = await hasExpectedBalance(processorSigner, processorExpectedBalance);
+        if (!balancesT.hasBalance) {
+            status.balance = "error - " + formatEther(balancesT.balance) + " ETH";
             statusCode = 500;
         }
 

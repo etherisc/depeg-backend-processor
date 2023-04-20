@@ -1,7 +1,7 @@
 import { BigNumber, Signer } from 'ethers';
 import { logger } from './logger';
 import { redisClient } from './redisclient';
-import { formatBytes32String, formatUnits } from 'ethers/lib/utils';
+import { formatBytes32String, formatEther, formatUnits } from 'ethers/lib/utils';
 import { DepegProduct, DepegProduct__factory } from "./contracts/depeg-contracts";
 import { Repository } from 'redis-om';
 import { APPLICATION_ID, BALANCE_TOO_LOW_TIMEOUT, CHAIN_MINUMUM_REQUIRED_CONFIRMATIONS, CONSUMER_ID, ERROR_TIMEOUT, REDIS_READ_BLOCK_TIMEOUT, STREAM_KEY } from './constants';
@@ -23,8 +23,9 @@ export default class QueueListener {
         logger.info("attaching to queue " + STREAM_KEY + " with group " + APPLICATION_ID + " and consumer " + CONSUMER_ID);
 
         while(true) {
-            if (! await hasExpectedBalance(processorSigner, processorExpectedBalance)) {
-                logger.error('processor balance too low, waiting ' + BALANCE_TOO_LOW_TIMEOUT + 'ms');
+            const balanceState = await hasExpectedBalance(processorSigner, processorExpectedBalance);
+            if (! balanceState.hasBalance) {
+                logger.error('processor balance too low, waiting ' + BALANCE_TOO_LOW_TIMEOUT + 'ms. balance: ' + formatEther(balanceState.balance) + ' ETH');
                 await new Promise(f => setTimeout(f, BALANCE_TOO_LOW_TIMEOUT));
                 continue;
             }
@@ -154,7 +155,8 @@ export default class QueueListener {
 
 }
 
-export async function hasExpectedBalance(processorSigner: Signer, processorExpectedBalance: BigNumber): Promise<boolean> {
+export async function hasExpectedBalance(processorSigner: Signer, processorExpectedBalance: BigNumber): Promise<{ hasBalance: boolean, balance: BigNumber} > {
     const balance = await processorSigner.getBalance();
-    return (balance).gte(processorExpectedBalance);
+    const has = (balance).gte(processorExpectedBalance);
+    return { hasBalance: has, balance };
 }
