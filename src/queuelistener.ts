@@ -45,7 +45,6 @@ export default class QueueListener {
             } catch (e) {
                 logger.error('caught error, blocking for ' + ERROR_TIMEOUT + 'ms', e);
                 await new Promise(f => setTimeout(f, ERROR_TIMEOUT));
-                continue;
             }
 
             await this.checkPendingTransactions(pendingTransactionRepository, processorSigner);
