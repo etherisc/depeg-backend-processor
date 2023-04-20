@@ -3,13 +3,12 @@ import express, { Request, Response } from 'express';
 import { hasExpectedBalance } from './queuelistener';
 import { formatEther } from 'ethers/lib/utils';
 import { redisClient } from './redisclient';
-import { APPLICATION_ID, CONSUMER_ID, STREAM_KEY } from './constants';
+import { APPLICATION_ID, CONSUMER_ID, MAX_NON_ACK_PENDING_MESSAGES, PROCESSOR_QUEUE_LISTENER_LOOP_MAX_TIMEOUT, STREAM_KEY } from './constants';
 import { logger } from './logger';
 
 
 export async function initializeApi(processorSigner: Signer, processorExpectedBalance: BigNumber) {
     const port = process.env.PORT || 3000;
-    const lastCheckTimeout = 180 * 1000;
     const app = express();
     const monitorRedisClient = redisClient.duplicate();
     monitorRedisClient.connect();
@@ -29,13 +28,13 @@ export async function initializeApi(processorSigner: Signer, processorExpectedBa
         }
 
         const nonAckMessages = await getNonAckMessages(monitorRedisClient);
-        if (nonAckMessages > 5) {
+        if (nonAckMessages > MAX_NON_ACK_PENDING_MESSAGES) {
             status.nonAckPendingTx = "error - " + nonAckMessages + " non-ack messages";
             statusCode = 500;
         }
 
         const lastCheckTimestamp = await getLastCheckTimestamp(monitorRedisClient);
-        if(new Date().getTime() - lastCheckTimestamp.getTime() > lastCheckTimeout) {
+        if(new Date().getTime() - lastCheckTimestamp.getTime() > PROCESSOR_QUEUE_LISTENER_LOOP_MAX_TIMEOUT) {
             status.processor = "error - last successful queue processing " + lastCheckTimestamp.toISOString();
             statusCode = 500;
         }

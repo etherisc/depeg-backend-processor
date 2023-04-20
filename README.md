@@ -16,10 +16,24 @@ This is used to provide a feeless service (if the applicant chooses the option '
 - `PROCESSOR_EXPECTED_BALANCE`: the minimum expected balance of the processor (should be large enough to pay for one application at the given gas price)
 - `PROCESSOR_MNEMONIC`: the mnemonic of the processor
 - `MAX_FEE_PER_GAS`: the maximum fee per gas to use for the application
+- `MAX_NON_ACK_PENDING_MESSAGES`: the maximum number of pending messages on the applications redis stream (queue) that are not acknowledged (i.e. not processed yet)
 
 - `BALANCE_TOO_LOW_TIMEOUT`: the timeout in milliseconds to wait before retrying to submit an application if the balance is too low
 - `ERROR_TIMEOUT`: the timeout in milliseconds to wait before retrying to submit an application if an error occurred
 - `REDIS_READ_BLOCK_TIMEOUT`: the timeout in milliseconds to block while reading from redis stream (queue)
+- `PROCESSOR_QUEUE_LISTENER_LOOP_MAX_TIMEOUT`: TODO
+- `PORT`: the http port the API listens on
+
+## API
+
+### Monitor (`/api/monitor`)
+
+To monitor the instance, create a check in your monitoring tool that calls the `/api/monitor` endpoint. The endpoint returns a 200 status code if the instance is healthy, otherwise it returns a 500 status code.
+
+The call checks the following:
+- `balance`: the balance of the processor is above the expected balance (see `PROCESSOR_EXPECTED_BALANCE`)
+- `processor`: the processor loop was executed at least once in the last 3 minutes (configurable via `PROCESSOR_QUEUE_LISTENER_LOOP_MAX_TIMEOUT`)
+- `nonAckPendingTx`: the number of pending messages on the applications redis stream (queue) that are not acknowledged (i.e. not processed yet) (see `MAX_NON_ACK_PENDING_MESSAGES`)
 
 ## Execution
 
