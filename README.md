@@ -66,7 +66,7 @@ git push dokku <branch-to-deploy>:main
 Replace application name (`goerli-setup`) with whatever fits your need. DNS is expected to be prepared in advance.
 
 
-```s
+```
 # create dokku application 
 dokku apps:create mumbai-processor
 
