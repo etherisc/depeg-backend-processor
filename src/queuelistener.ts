@@ -136,7 +136,7 @@ export default class QueueListener {
     }
 
     async checkPendingTransactions(pendingTransactionRepository: Repository<PendingApplication>, signer: Signer) {
-        logger.debug("checking state of pending trnsactions");
+        logger.debug("checking state of pending transactions");
         const pendingTransactions = await pendingTransactionRepository.search().return.all();
         for (const pendingTransaction of pendingTransactions) {
             if (pendingTransaction.transactionHash === null) {
