@@ -146,7 +146,7 @@ export default class QueueListener {
             const wasMined = rcpt.blockHash !== null && rcpt.confirmations > CHAIN_MINUMUM_REQUIRED_CONFIRMATIONS;
             logger.debug(`mined: ${wasMined}`);
             if (wasMined) {
-                logger.info("transaction " + pendingTransaction.transactionHash + " has been mined. removing pending application " + pendingTransaction.entityId);
+                logger.info("transaction " + pendingTransaction.transactionHash + " has been mined. removing pending application, signatureId " + pendingTransaction.signatureId);
                 await pendingTransactionRepository.remove(pendingTransaction.entityId);
             }
         }
