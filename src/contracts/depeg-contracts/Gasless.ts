@@ -7,6 +7,8 @@ import type {
   BigNumberish,
   BytesLike,
   CallOverrides,
+  ContractTransaction,
+  Overrides,
   PopulatedTransaction,
   Signer,
   utils,
@@ -193,8 +195,8 @@ export interface Gasless extends BaseContract {
       duration: PromiseOrValue<BigNumberish>,
       bundleId: PromiseOrValue<BigNumberish>,
       signature: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
-    ): Promise<[void]>;
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
+    ): Promise<ContractTransaction>;
 
     getDigest(
       protectedWallet: PromiseOrValue<string>,
@@ -248,8 +250,8 @@ export interface Gasless extends BaseContract {
     duration: PromiseOrValue<BigNumberish>,
     bundleId: PromiseOrValue<BigNumberish>,
     signature: PromiseOrValue<BytesLike>,
-    overrides?: CallOverrides
-  ): Promise<void>;
+    overrides?: Overrides & { from?: PromiseOrValue<string> }
+  ): Promise<ContractTransaction>;
 
   getDigest(
     protectedWallet: PromiseOrValue<string>,
@@ -304,7 +306,7 @@ export interface Gasless extends BaseContract {
       bundleId: PromiseOrValue<BigNumberish>,
       signature: PromiseOrValue<BytesLike>,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<boolean>;
 
     getDigest(
       protectedWallet: PromiseOrValue<string>,
@@ -361,7 +363,7 @@ export interface Gasless extends BaseContract {
       duration: PromiseOrValue<BigNumberish>,
       bundleId: PromiseOrValue<BigNumberish>,
       signature: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<BigNumber>;
 
     getDigest(
@@ -423,7 +425,7 @@ export interface Gasless extends BaseContract {
       duration: PromiseOrValue<BigNumberish>,
       bundleId: PromiseOrValue<BigNumberish>,
       signature: PromiseOrValue<BytesLike>,
-      overrides?: CallOverrides
+      overrides?: Overrides & { from?: PromiseOrValue<string> }
     ): Promise<PopulatedTransaction>;
 
     getDigest(
