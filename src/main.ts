@@ -1,10 +1,11 @@
 import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import * as dotenv from 'dotenv';
-import { Signer, Wallet, logger } from 'ethers';
+import { Signer, Wallet } from 'ethers';
 import { formatEther, formatUnits } from 'ethers/lib/utils';
 import { initializeApi } from './api';
 import { CHAIN_RPC_URL, DEPEG_PRODUCT_ADDRESS, MAX_FEE_PER_GAS, PROCESSOR_EXPECTED_BALANCE, PROCESSOR_MNEMONIC } from './constants';
 import QueueListener from './queuelistener';
+import { logger } from './logger';
 
 dotenv.config();
 
