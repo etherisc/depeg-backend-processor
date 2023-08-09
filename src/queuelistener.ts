@@ -1,12 +1,11 @@
 import { BigNumber, Signer } from 'ethers';
-import { logger } from './logger';
-import { redisClient } from './redisclient';
-import { formatBytes32String, formatEther, formatUnits } from 'ethers/lib/utils';
-import { DepegProduct, DepegProduct__factory } from "./contracts/depeg-contracts";
-import { Repository } from 'redis-om';
+import { formatBytes32String, formatEther } from 'ethers/lib/utils';
+import { EntityId, Repository } from 'redis-om';
 import { APPLICATION_ID, BALANCE_TOO_LOW_TIMEOUT, CHAIN_MINUMUM_REQUIRED_CONFIRMATIONS, CONSUMER_ID, ERROR_TIMEOUT, REDIS_READ_BLOCK_TIMEOUT, STREAM_KEY } from './constants';
-import { PendingApplication, getPendingApplicationRepository } from './pending_application';
-import { EntityId } from 'redis-om'
+import { DepegProduct, DepegProduct__factory } from "./contracts/depeg-contracts";
+import { logger } from './logger';
+import { getPendingApplicationRepository } from './pending_application';
+import { redisClient } from './redisclient';
 
 export default class QueueListener {
 
