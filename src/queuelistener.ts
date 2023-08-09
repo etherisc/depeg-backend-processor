@@ -6,6 +6,7 @@ import { DepegProduct, DepegProduct__factory } from "./contracts/depeg-contracts
 import { Repository } from 'redis-om';
 import { APPLICATION_ID, BALANCE_TOO_LOW_TIMEOUT, CHAIN_MINUMUM_REQUIRED_CONFIRMATIONS, CONSUMER_ID, ERROR_TIMEOUT, REDIS_READ_BLOCK_TIMEOUT, STREAM_KEY } from './constants';
 import { PendingApplication, getPendingApplicationRepository } from './pending_application';
+import { EntityId } from 'redis-om'
 
 export default class QueueListener {
 
@@ -87,15 +88,15 @@ export default class QueueListener {
         return { id: obj.id, message: obj.message };
     }
 
-    async processMessage(id: string, message: any, product: DepegProduct, pendingTransactionRepository: any, maxFeePerGas: BigNumber) {
+    async processMessage(id: string, message: any, product: DepegProduct, pendingTransactionRepository: Repository, maxFeePerGas: BigNumber) {
         logger.info("processing id: " + id + " signatureId " + message.signatureId);
         const signatureId = message.signatureId as string;
         
         logger.info("application - signatureId: " + signatureId);
 
-        const pendingApplication = await pendingTransactionRepository.search().where("signatureId").eq(signatureId).return.first();
+        const pendingApplicationEntity = await pendingTransactionRepository.search().where("signatureId").eq(signatureId).return.first();
 
-        if (pendingApplication === null) {
+        if (pendingApplicationEntity == null) {
             logger.error("no pending application found for signatureId " + signatureId + ", ignoring");
             await redisClient.xAck(STREAM_KEY, APPLICATION_ID, id);
             return;
@@ -103,21 +104,21 @@ export default class QueueListener {
 
         try {
             const tx = await product.applyForPolicyWithBundleAndSignature(
-                pendingApplication.policyHolder,
-                pendingApplication.protectedWallet,
-                pendingApplication.protectedBalance,
-                pendingApplication.duration,
-                pendingApplication.bundleId,
+                pendingApplicationEntity.policyHolder as string,
+                pendingApplicationEntity.protectedWallet as string,
+                pendingApplicationEntity.protectedBalance as string,
+                pendingApplicationEntity.duration as number,
+                pendingApplicationEntity.bundleId as number,
                 formatBytes32String(signatureId),
-                pendingApplication.signature,
+                pendingApplicationEntity.signature as string,
                 {
                     maxFeePerGas,
                 }
             );
             logger.info("tx: " + tx.hash);
         
-            pendingApplication.transactionHash = tx.hash;
-            await pendingTransactionRepository.save(pendingApplication);
+            pendingApplicationEntity.transactionHash = tx.hash;
+            await pendingTransactionRepository.save(pendingApplicationEntity);
             logger.info("updated PendingApplication (" + signatureId + ") with tx hash " + tx.hash);
             await redisClient.xAck(STREAM_KEY, APPLICATION_ID, id);
             logger.debug("acked redis message " + id);
@@ -127,27 +128,28 @@ export default class QueueListener {
                 // @ts-ignore
                 const reason = e.error.error.error.data.reason;
                 logger.error("application failed. reason: " + reason);
-                await pendingTransactionRepository.remove(pendingApplication.entityId);
-                logger.debug("removed pending application " + pendingApplication.entityId);
+                const entityId = pendingApplicationEntity[EntityId] as string;
+                await pendingTransactionRepository.remove(entityId);
+                logger.debug("removed pending application " + entityId);
                 return;
             }            
             throw e;
         }
     }
 
-    async checkPendingTransactions(pendingTransactionRepository: Repository<PendingApplication>, signer: Signer) {
+    async checkPendingTransactions(pendingTransactionRepository: Repository, signer: Signer) {
         logger.debug("checking state of pending transactions");
         const pendingTransactions = await pendingTransactionRepository.search().return.all();
         for (const pendingTransaction of pendingTransactions) {
             if (pendingTransaction.transactionHash === null) {
                 continue;
             }
-            const rcpt = await signer.provider!.getTransaction(pendingTransaction.transactionHash);
+            const rcpt = await signer.provider!.getTransaction(pendingTransaction.transactionHash as string);
             const wasMined = rcpt.blockHash !== null && rcpt.confirmations > CHAIN_MINUMUM_REQUIRED_CONFIRMATIONS;
             logger.debug(`mined: ${wasMined}`);
             if (wasMined) {
                 logger.info("transaction " + pendingTransaction.transactionHash + " has been mined. removing pending application, signatureId " + pendingTransaction.signatureId);
-                await pendingTransactionRepository.remove(pendingTransaction.entityId);
+                await pendingTransactionRepository.remove(pendingTransaction[EntityId] as string);
             }
         }
     }
