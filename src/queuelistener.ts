@@ -1,5 +1,5 @@
 import { BigNumber, Signer } from 'ethers';
-import { formatBytes32String, formatEther } from 'ethers/lib/utils';
+import { formatBytes32String, formatEther, formatUnits } from 'ethers/lib/utils';
 import { EntityId, Repository } from 'redis-om';
 import { APPLICATION_ID, BALANCE_TOO_LOW_TIMEOUT, CHAIN_MINUMUM_REQUIRED_CONFIRMATIONS, CONSUMER_ID, ERROR_TIMEOUT, REDIS_READ_BLOCK_TIMEOUT, STREAM_KEY } from './constants';
 import { DepegProduct, DepegProduct__factory } from "./contracts/depeg-contracts";
@@ -102,14 +102,30 @@ export default class QueueListener {
         }
 
         try {
+            const policyHolder = pendingApplicationEntity.policyHolder as string;
+            const protectedWallet = pendingApplicationEntity.protectedWallet as string;
+            const protectedBalance = BigNumber.from(pendingApplicationEntity.protectedBalance as string);
+            const duration = pendingApplicationEntity.duration as number;
+            const bundleId = pendingApplicationEntity.bundleId as number;
+            const signatureIdB32s = formatBytes32String(signatureId);
+            const signature = pendingApplicationEntity.signature as string;
+            logger.info("TX application - "
+                + "policyHolder: " + policyHolder
+                + ", protectedWallet: " + protectedWallet
+                + ", protectedBalance: " + formatUnits(protectedBalance, 0)
+                + ", duration: " + duration
+                + ", bundleId: " + bundleId
+                + ", signatureId: " + signatureIdB32s
+                + ", signature: " + signature
+            );
             const tx = await product.applyForPolicyWithBundleAndSignature(
-                pendingApplicationEntity.policyHolder as string,
-                pendingApplicationEntity.protectedWallet as string,
-                pendingApplicationEntity.protectedBalance as string,
-                pendingApplicationEntity.duration as number,
-                pendingApplicationEntity.bundleId as number,
-                formatBytes32String(signatureId),
-                pendingApplicationEntity.signature as string,
+                policyHolder,
+                protectedWallet,
+                protectedBalance,
+                duration,
+                bundleId,
+                signatureIdB32s,
+                signature,
                 {
                     maxFeePerGas,
                 }
@@ -140,7 +156,7 @@ export default class QueueListener {
         logger.debug("checking state of pending transactions");
         const pendingTransactions = await pendingTransactionRepository.search().return.all();
         for (const pendingTransaction of pendingTransactions) {
-            if (pendingTransaction.transactionHash === null) {
+            if (pendingTransaction.transactionHash === undefined) {
                 continue;
             }
             const rcpt = await signer.provider!.getTransaction(pendingTransaction.transactionHash as string);
