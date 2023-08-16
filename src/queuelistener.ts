@@ -126,7 +126,6 @@ export default class QueueListener {
                 signature,
                 {
                     maxFeePerGas,
-                    maxPriorityFeePerGas: parseUnits("0.1", "gwei"),
                 }
             );
             logger.info("tx: " + tx.hash);
