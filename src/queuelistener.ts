@@ -146,6 +146,8 @@ export default class QueueListener {
                 const entityId = pendingApplicationEntity[EntityId] as string;
                 await pendingTransactionRepository.remove(entityId);
                 logger.debug("removed pending application " + entityId);
+                await redisClient.xAck(STREAM_KEY, APPLICATION_ID, id);
+                logger.debug("acked redis message " + id);
                 return;
             }            
             throw e;
