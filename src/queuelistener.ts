@@ -9,7 +9,7 @@ import { redisClient } from './redisclient';
 
 export default class QueueListener {
 
-    async listen(depegProductAddress: string, processorSigner: Signer, maxFeePerGas: BigNumber, processorExpectedBalance: BigNumber): Promise<void> {
+    async listen(depegProductAddress: string, processorSigner: Signer, maxFeePerGas: BigNumber, maxPriorityFeePerGas: BigNumber | undefined, processorExpectedBalance: BigNumber): Promise<void> {
         try {
             await redisClient.xGroupCreate(STREAM_KEY, APPLICATION_ID, "0", { MKSTREAM: true });
         } catch (err) {
@@ -33,14 +33,14 @@ export default class QueueListener {
             try {
                 const pendingMessage = await this.getNextPendingMessage();
                 if (pendingMessage !== null) {
-                    await this.processMessage(pendingMessage.id, pendingMessage.message, product, pendingTransactionRepository, maxFeePerGas);
+                    await this.processMessage(pendingMessage.id, pendingMessage.message, product, pendingTransactionRepository, maxFeePerGas, maxPriorityFeePerGas);
                     // repeat this while there are pending messages
                     continue;
                 }
                 
                 const newMessage = await this.getNextNewMessage();
                 if (newMessage !== null) {
-                    await this.processMessage(newMessage.id, newMessage.message, product, pendingTransactionRepository, maxFeePerGas);
+                    await this.processMessage(newMessage.id, newMessage.message, product, pendingTransactionRepository, maxFeePerGas, maxPriorityFeePerGas);
                 }
             } catch (e) {
                 logger.error('caught error, blocking for ' + ERROR_TIMEOUT + 'ms', e);
@@ -87,7 +87,7 @@ export default class QueueListener {
         return { id: obj.id, message: obj.message };
     }
 
-    async processMessage(redisId: string, message: any, product: DepegProduct, repo: Repository, maxFeePerGas: BigNumber) {
+    async processMessage(redisId: string, message: any, product: DepegProduct, repo: Repository, maxFeePerGas: BigNumber, maxPriorityFeePerGas: BigNumber | undefined) {
         const entityId = message.entityId as string;
         logger.info("processing id: " + redisId + " entityId " + entityId);
         
@@ -116,6 +116,7 @@ export default class QueueListener {
                 + ", signatureId: " + signatureIdB32s
                 + ", signature: " + signature
             );
+            logger.info("maxPriorityFeePerGas", maxPriorityFeePerGas);
             const tx = await product.applyForPolicyWithBundleAndSignature(
                 policyHolder,
                 protectedWallet,
@@ -126,6 +127,7 @@ export default class QueueListener {
                 signature,
                 {
                     maxFeePerGas,
+                    maxPriorityFeePerGas
                 }
             );
             logger.info("tx: " + tx.hash);
