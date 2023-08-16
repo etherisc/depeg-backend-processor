@@ -87,17 +87,15 @@ export default class QueueListener {
         return { id: obj.id, message: obj.message };
     }
 
-    async processMessage(id: string, message: any, product: DepegProduct, pendingTransactionRepository: Repository, maxFeePerGas: BigNumber) {
-        logger.info("processing id: " + id + " signatureId " + message.signatureId);
-        const signatureId = message.signatureId as string;
+    async processMessage(redisId: string, message: any, product: DepegProduct, repo: Repository, maxFeePerGas: BigNumber) {
+        const entityId = message.entityId as string;
+        logger.info("processing id: " + redisId + " entityId " + entityId);
         
-        logger.info("application - signatureId: " + signatureId);
-
-        const pendingApplicationEntity = await pendingTransactionRepository.search().where("signatureId").eq(signatureId).return.first();
+        const pendingApplicationEntity = await repo.fetch(entityId);
 
         if (pendingApplicationEntity == null) {
-            logger.error("no pending application found for signatureId " + signatureId + ", ignoring");
-            await redisClient.xAck(STREAM_KEY, APPLICATION_ID, id);
+            logger.error("no pending application found for entityId " + entityId + ", ignoring");
+            await redisClient.xAck(STREAM_KEY, APPLICATION_ID, redisId);
             return;
         }
 
@@ -107,7 +105,7 @@ export default class QueueListener {
             const protectedBalance = BigNumber.from(pendingApplicationEntity.protectedBalance as string);
             const duration = pendingApplicationEntity.duration as number;
             const bundleId = pendingApplicationEntity.bundleId as number;
-            const signatureIdB32s = formatBytes32String(signatureId);
+            const signatureIdB32s = formatBytes32String(pendingApplicationEntity.signatureId as string);
             const signature = pendingApplicationEntity.signature as string;
             logger.info("TX application - "
                 + "policyHolder: " + policyHolder
@@ -134,24 +132,36 @@ export default class QueueListener {
             logger.info("tx: " + tx.hash);
         
             pendingApplicationEntity.transactionHash = tx.hash;
-            await pendingTransactionRepository.save(pendingApplicationEntity);
-            logger.info("updated PendingApplication (" + signatureId + ") with tx hash " + tx.hash);
-            await redisClient.xAck(STREAM_KEY, APPLICATION_ID, id);
-            logger.debug("acked redis message " + id);
+            await repo.save(pendingApplicationEntity);
+            logger.info("updated PendingApplication (" + entityId + ") with tx hash " + tx.hash);
+            await redisClient.xAck(STREAM_KEY, APPLICATION_ID, redisId);
+            logger.debug("acked redis message " + redisId);
         } catch (e) {
             logger.info(e);
             // @ts-ignore
-            if (e.error?.error?.error?.data?.reason !== undefined) {
+            if (e.error?.reason !== undefined) {
+                // @ts-ignore
+                const reason = e.error.reason as string;
+                logger.error("tx failed. reason: " + reason);
+                if (reason.includes("ERROR:SMH-001:SIGNATURE_USED")) {
+                    logger.error("stake failed. reason: ERROR:SMH-001:SIGNATURE_USED ... ignoring");
+                    await repo.remove(entityId);
+                    logger.debug("removed pending stake " + entityId);
+                    await redisClient.xAck(STREAM_KEY, APPLICATION_ID, redisId);
+                    logger.debug("acked redis message " + redisId);
+                    return;
+                }
+            // @ts-ignore
+            } else if (e.error?.error?.error?.data?.reason !== undefined) {
                 // @ts-ignore
                 const reason = e.error.error.error.data.reason;
-                logger.error("application failed. reason: " + reason);
-                const entityId = pendingApplicationEntity[EntityId] as string;
-                await pendingTransactionRepository.remove(entityId);
-                logger.debug("removed pending application " + entityId);
-                await redisClient.xAck(STREAM_KEY, APPLICATION_ID, id);
-                logger.debug("acked redis message " + id);
+                logger.error("tx failed. reason: " + reason);
+                await repo.remove(entityId);
+                logger.debug("removed pending stake " + entityId);
+                await redisClient.xAck(STREAM_KEY, APPLICATION_ID, redisId);
+                logger.debug("acked redis message " + redisId);
                 return;
-            }            
+            }              
             throw e;
         }
     }
