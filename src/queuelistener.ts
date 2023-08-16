@@ -116,7 +116,6 @@ export default class QueueListener {
                 + ", signatureId: " + signatureIdB32s
                 + ", signature: " + signature
             );
-            logger.info("maxPriorityFeePerGas", maxPriorityFeePerGas);
             const tx = await product.applyForPolicyWithBundleAndSignature(
                 policyHolder,
                 protectedWallet,
