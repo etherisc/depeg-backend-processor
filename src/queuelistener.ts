@@ -1,5 +1,5 @@
 import { BigNumber, Signer } from 'ethers';
-import { formatBytes32String, formatEther, formatUnits } from 'ethers/lib/utils';
+import { formatBytes32String, formatEther, formatUnits, parseUnits } from 'ethers/lib/utils';
 import { EntityId, Repository } from 'redis-om';
 import { APPLICATION_ID, BALANCE_TOO_LOW_TIMEOUT, CHAIN_MINUMUM_REQUIRED_CONFIRMATIONS, CONSUMER_ID, ERROR_TIMEOUT, REDIS_READ_BLOCK_TIMEOUT, STREAM_KEY } from './constants';
 import { DepegProduct, DepegProduct__factory } from "./contracts/depeg-contracts";
@@ -128,6 +128,7 @@ export default class QueueListener {
                 signature,
                 {
                     maxFeePerGas,
+                    maxPriorityFeePerGas: parseUnits("0.1", "gwei"),
                 }
             );
             logger.info("tx: " + tx.hash);
@@ -138,6 +139,7 @@ export default class QueueListener {
             await redisClient.xAck(STREAM_KEY, APPLICATION_ID, id);
             logger.debug("acked redis message " + id);
         } catch (e) {
+            logger.info(e);
             // @ts-ignore
             if (e.error?.error?.error?.data?.reason !== undefined) {
                 // @ts-ignore
