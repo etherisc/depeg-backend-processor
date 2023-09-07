@@ -23,6 +23,9 @@ export default class QueueListener {
         logger.info("attaching to queue " + STREAM_KEY + " with group " + APPLICATION_ID + " and consumer " + CONSUMER_ID);
 
         while(true) {
+            // always clean up first
+            await this.checkPendingTransactions(pendingTransactionRepository, processorSigner);
+
             const balanceState = await hasExpectedBalance(processorSigner, processorExpectedBalance);
             if (! balanceState.hasBalance) {
                 logger.error('processor balance too low, waiting ' + BALANCE_TOO_LOW_TIMEOUT + 'ms. balance: ' + formatEther(balanceState.balance) + ' ETH');
@@ -45,11 +48,11 @@ export default class QueueListener {
             } catch (e) {
                 logger.error('caught error, blocking for ' + ERROR_TIMEOUT + 'ms', e);
                 await new Promise(f => setTimeout(f, ERROR_TIMEOUT));
+            } finally {
+                // update last-check timestamp
+                await redisClient.set("last-check", new Date().toISOString());
             }
 
-            await this.checkPendingTransactions(pendingTransactionRepository, processorSigner);
-            // update last-check timestamp
-            await redisClient.set("last-check", new Date().toISOString());
         }
     }
 
