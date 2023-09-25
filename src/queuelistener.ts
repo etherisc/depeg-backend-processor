@@ -145,14 +145,22 @@ export default class QueueListener {
             if (e.error?.reason !== undefined) {
                 // @ts-ignore
                 const reason = e.error.reason as string;
-                logger.error("tx failed. reason: " + reason);
                 if (reason.includes("ERROR:SMH-001:SIGNATURE_USED")) {
                     logger.error("stake failed. reason: ERROR:SMH-001:SIGNATURE_USED ... ignoring");
                     await repo.remove(entityId);
-                    logger.debug("removed pending stake " + entityId);
+                    logger.debug("removed pending application " + entityId);
                     await redisClient.xAck(STREAM_KEY, APPLICATION_ID, redisId);
                     logger.debug("acked redis message " + redisId);
                     return;
+                } else if (reason.includes("ECDSA: invalid signature")) {
+                    logger.error("tx failed. reason: ECDSA: invalid signature ... ignoring");
+                    await repo.remove(entityId);
+                    logger.debug("removed pending application " + entityId);
+                    await redisClient.xAck(STREAM_KEY, APPLICATION_ID, redisId);
+                    logger.debug("acked redis message " + redisId);
+                    return;
+                } else {
+                    logger.error("tx failed. reason: " + reason);
                 }
             // @ts-ignore
             } else if (e.error?.error?.error?.data?.reason !== undefined) {
@@ -160,7 +168,7 @@ export default class QueueListener {
                 const reason = e.error.error.error.data.reason;
                 logger.error("tx failed. reason: " + reason);
                 await repo.remove(entityId);
-                logger.debug("removed pending stake " + entityId);
+                logger.debug("removed pending application " + entityId);
                 await redisClient.xAck(STREAM_KEY, APPLICATION_ID, redisId);
                 logger.debug("acked redis message " + redisId);
                 return;
