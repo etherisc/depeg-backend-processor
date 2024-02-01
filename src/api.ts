@@ -13,19 +13,12 @@ export async function initializeApi(processorSigner: Signer, processorAlertBalan
     const monitorRedisClient = redisClient.duplicate();
     monitorRedisClient.connect();
 
-    app.get('/api/monitor', async (req: Request, res: Response) => {
+    app.get('/api/monitor/liveness', async (req: Request, res: Response) => {
         const status = {
-            balance: "ok",
             processor: "ok",
             nonAckPendingTx: "ok",
         }
         let statusCode = 200;
-
-        const balancesT = await hasExpectedBalance(processorSigner, processorAlertBalance);
-        if (!balancesT.hasBalance) {
-            status.balance = "error - processor balance is " + formatEther(balancesT.balance) + " ETH";
-            statusCode = 500;
-        }
 
         const nonAckMessages = await getNonAckMessages(monitorRedisClient);
         if (nonAckMessages > MAX_NON_ACK_PENDING_MESSAGES) {
@@ -36,6 +29,26 @@ export async function initializeApi(processorSigner: Signer, processorAlertBalan
         const lastCheckTimestamp = await getLastCheckTimestamp(monitorRedisClient);
         if(new Date().getTime() - lastCheckTimestamp.getTime() > PROCESSOR_QUEUE_LISTENER_LOOP_MAX_TIMEOUT) {
             status.processor = "error - last successful queue processing " + lastCheckTimestamp.toISOString();
+            statusCode = 500;
+        }
+        
+        if (statusCode === 200) {
+            logger.debug("monitor ok");
+        } else {
+            logger.error("monitor error - 500 " + JSON.stringify(status));
+        }
+        res.status(statusCode).send(status);
+    });
+
+    app.get('/api/monitor/readiness', async (req: Request, res: Response) => {
+        const status = {
+            balance: "ok",
+        }
+        let statusCode = 200;
+
+        const balancesT = await hasExpectedBalance(processorSigner, processorAlertBalance);
+        if (!balancesT.hasBalance) {
+            status.balance = "error - processor balance is " + formatEther(balancesT.balance) + " ETH";
             statusCode = 500;
         }
         
